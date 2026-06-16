@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Hyperliquid My-Order Highlighter",
+  "version": "0.1.0",
+  "description": "Highlights orderbook price levels where your connected wallet has open orders, color-coded by order type.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.hyperliquid.xyz/*"],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Hyperliquid My-Order Highlighter"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.hyperliquid.xyz/*"],
+      "js": ["src/injected.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://app.hyperliquid.xyz/*"],
+      "js": ["src/match.js", "src/content.js"],
+      "css": ["src/styles.css"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ]
+}

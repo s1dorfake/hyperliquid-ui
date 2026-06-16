@@ -1,0 +1,48 @@
+/* Highlight styling for orderbook rows where you have open orders.
+   Color-coded by order type. Uses box-shadow inset + outline so it reads
+   clearly on top of Hyperliquid's existing red/green row backgrounds. */
+
+.hl-myorder {
+  position: relative !important;
+  border-radius: 2px;
+}
+
+.hl-limit {
+  background-color: rgba(56, 139, 253, 0.28) !important;
+  box-shadow: inset 2px 0 0 0 rgba(56, 139, 253, 0.95) !important;
+}
+
+.hl-trigger {
+  background-color: rgba(240, 173, 78, 0.3) !important;
+  box-shadow: inset 2px 0 0 0 rgba(240, 173, 78, 1) !important;
+}
+
+.hl-reduce {
+  background-color: rgba(163, 113, 247, 0.28) !important;
+  box-shadow: inset 2px 0 0 0 rgba(163, 113, 247, 0.95) !important;
+}
+
+.hl-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  color: #fff;
+  vertical-align: middle;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hl-badge-limit {
+  background-color: rgba(56, 139, 253, 0.95);
+}
+.hl-badge-trigger {
+  background-color: rgba(240, 173, 78, 1);
+  color: #1b1b1b;
+}
+.hl-badge-reduce {
+  background-color: rgba(163, 113, 247, 0.95);
+}
