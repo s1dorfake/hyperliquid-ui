@@ -548,10 +548,20 @@
     }
   }
 
+  // Throttle (not a trailing debounce): on an active book the DOM mutates
+  // continuously, so a debounce that resets on every mutation would be starved
+  // and rarely fire. This guarantees apply() runs at a steady ~200ms cadence
+  // while updates keep coming.
   var applyTimer = null;
+  var lastApplyTs = 0;
   function scheduleApply() {
-    if (applyTimer) clearTimeout(applyTimer);
-    applyTimer = setTimeout(apply, 250);
+    if (applyTimer) return;
+    var wait = Math.max(0, 200 - (Date.now() - lastApplyTs));
+    applyTimer = setTimeout(function () {
+      applyTimer = null;
+      lastApplyTs = Date.now();
+      apply();
+    }, wait);
   }
 
   function startObserver() {
