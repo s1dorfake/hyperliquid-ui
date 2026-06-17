@@ -45,6 +45,7 @@
    it never overlaps the price text. Background comes from .hl-badge-<cat>. */
 .hl-dist {
   position: absolute;
+  left: 20%; /* end of the 20% Price column → empty left of the Size column */
   top: 50%;
   transform: translateY(-50%);
   padding: 0 4px;

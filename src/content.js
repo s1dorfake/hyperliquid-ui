@@ -334,11 +334,17 @@
     // to the side's bucket edge (bids floor, asks ceil). myOf maps a row to our
     // aggregated {sz, usd, cat} there.
     var tick = computeTick(rows);
+    var rowByKey = {};
+    rows.forEach(function (r) {
+      if (r.price != null) rowByKey[String(r.price)] = r;
+    });
     var myOf = new Map();
     state.index.forEach(function (entry) {
       var p = Number(entry.price);
       var side = entry.sides.has("buy") ? "buy" : "sell";
-      var r = matchRow(rows, p, tick, side);
+      // Exact price row first (the reliable common case); fall back to bucket
+      // matching only when the book is grouped and no exact row exists.
+      var r = rowByKey[entry.price] || matchRow(rows, p, tick, side);
       if (!r) return;
       var cat = M.primaryCat(entry);
       var cur = myOf.get(r.row) || { sz: 0, usd: 0, cat: "limit" };
@@ -347,6 +353,7 @@
       if (catRank(cat) > catRank(cur.cat)) cur.cat = cat;
       myOf.set(r.row, cur);
     });
+    log("rows:", rows.length, "tick:", tick, "matched:", myOf.size);
     function myUnit(m) {
       return isQuote ? m.usd : m.sz;
     }
@@ -362,20 +369,20 @@
       var m = myOf.get(r.row);
       if (!m) return;
       count++;
-      addBadge(r.sizeLeaf, m.cat, disp(myUnit(m)), "Your order (" + m.cat + ")");
-      if (mid && r.price != null) {
-        var diff = r.price - mid;
-        var absVal = M.sigFigs(Math.abs(diff), 2);
-        var pct = M.sigFigs((diff / mid) * 100, 2);
-        var d = document.createElement("span");
-        d.className = "hl-dist hl-badge-" + m.cat;
-        d.textContent = "$" + absVal + "(" + (pct > 0 ? "+" : "") + pct + "%)";
-        d.title = "Distance from mid";
-        // Place in the empty left part of the Size column so it never covers
-        // the price (anchored to the right edge of the price cell).
-        var cell = r.priceLeaf.parentElement;
-        d.style.left = (cell ? cell.offsetLeft + cell.offsetWidth : 0) + "px";
-        r.row.appendChild(d);
+      try {
+        addBadge(r.sizeLeaf, m.cat, disp(myUnit(m)), "Your order (" + m.cat + ")");
+        if (mid && r.price != null) {
+          var diff = r.price - mid;
+          var absVal = M.sigFigs(Math.abs(diff), 2);
+          var pct = M.sigFigs((diff / mid) * 100, 2);
+          var d = document.createElement("span");
+          d.className = "hl-dist hl-badge-" + m.cat;
+          d.textContent = "$" + absVal + "(" + (pct > 0 ? "+" : "") + pct + "%)";
+          d.title = "Distance from mid";
+          r.row.appendChild(d); // positioned via CSS (left = end of price col)
+        }
+      } catch (e) {
+        log("row badge error:", e && e.message);
       }
     });
 
@@ -405,9 +412,13 @@
           lastCat = m.cat;
         }
         if (cum > 0) {
-          addBadge(r.totalLeaf, lastCat, disp(cum), "Your cumulative depth here");
-          if (mode !== "level" && r.total > 0) {
-            paintDepthSegment(r.row, r.bar, cum, r.total, lastCat);
+          try {
+            addBadge(r.totalLeaf, lastCat, disp(cum), "Your cumulative depth here");
+            if (mode !== "level" && r.total > 0) {
+              paintDepthSegment(r.row, r.bar, cum, r.total, lastCat);
+            }
+          } catch (e) {
+            log("total/bar error:", e && e.message);
           }
         }
       }
@@ -421,16 +432,20 @@
         });
         if (maxLevel <= 0) return;
         g.forEach(function (r) {
-          r.bar.classList.add("hl-hide-bar");
-          if (!r.levelSize || r.levelSize <= 0) return;
-          var base = document.createElement("div");
-          base.className = "hl-base";
-          base.style.backgroundColor = r.color || "rgb(120,120,120)";
-          base.style.width = (r.levelSize / maxLevel) * 100 + "%";
-          r.row.appendChild(base);
-          var m = myOf.get(r.row);
-          if (m) {
-            paintDepthSegment(r.row, base, myUnit(m), r.levelSize, m.cat);
+          try {
+            r.bar.classList.add("hl-hide-bar");
+            if (!r.levelSize || r.levelSize <= 0) return;
+            var base = document.createElement("div");
+            base.className = "hl-base";
+            base.style.backgroundColor = r.color || "rgb(120,120,120)";
+            base.style.width = (r.levelSize / maxLevel) * 100 + "%";
+            r.row.appendChild(base);
+            var m = myOf.get(r.row);
+            if (m) {
+              paintDepthSegment(r.row, base, myUnit(m), r.levelSize, m.cat);
+            }
+          } catch (e) {
+            log("per-level bar error:", e && e.message);
           }
         });
       }
@@ -515,11 +530,15 @@
       if (state.enabled) {
         var scan = collectNumericLeaves(document.body);
         var root = findOrderbookRoot(scan);
-        count = renderBook(
-          root,
-          state.barMode === "level" ? "level" : "cumulative",
-          scan.sizeIsQuote
-        );
+        try {
+          count = renderBook(
+            root,
+            state.barMode === "level" ? "level" : "cumulative",
+            scan.sizeIsQuote
+          );
+        } catch (e) {
+          log("render error:", e && e.message);
+        }
       }
       state.lastCount = count;
       publishStatus();
