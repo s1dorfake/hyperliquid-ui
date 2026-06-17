@@ -125,7 +125,7 @@
       el.classList.remove.apply(el.classList, HL_CLASSES);
     });
     (root || document)
-      .querySelectorAll(".hl-badge, .hl-seg, .hl-base")
+      .querySelectorAll(".hl-badge, .hl-seg, .hl-base, .hl-dist")
       .forEach(function (b) {
         b.remove();
       });
@@ -365,12 +365,15 @@
       addBadge(r.sizeLeaf, m.cat, disp(myUnit(m)), "Your order (" + m.cat + ")");
       if (mid && r.price != null) {
         var pct = M.sigFigs(((r.price - mid) / mid) * 100, 2);
-        addTextBadge(
-          r.priceLeaf,
-          m.cat,
-          (pct > 0 ? "+" : "") + pct + "%",
-          "Distance from mid"
-        );
+        var d = document.createElement("span");
+        d.className = "hl-dist hl-badge-" + m.cat;
+        d.textContent = (pct > 0 ? "+" : "") + pct + "%";
+        d.title = "Distance from mid";
+        // Place in the empty left part of the Size column so it never covers
+        // the price (anchored to the right edge of the price cell).
+        var cell = r.priceLeaf.parentElement;
+        d.style.left = (cell ? cell.offsetLeft + cell.offsetWidth : 0) + "px";
+        r.row.appendChild(d);
       }
     });
 

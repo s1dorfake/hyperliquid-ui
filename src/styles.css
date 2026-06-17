@@ -41,6 +41,23 @@
   background-color: rgba(163, 113, 247, 0.7);
 }
 
+/* Distance-from-mid pill, absolutely placed at the start of the Size column so
+   it never overlaps the price text. Background comes from .hl-badge-<cat>. */
+.hl-dist {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 4px;
+  border-radius: 7px;
+  font-size: 10px;
+  line-height: 13px;
+  font-weight: 600;
+  color: #fff;
+  z-index: 3;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .hl-badge {
   display: inline-block;
   margin-left: 4px;
