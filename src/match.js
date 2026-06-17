@@ -57,15 +57,25 @@
     return best;
   }
 
+  // True if `coin` passes `filter`: a coin string, a Set/array of coins, or
+  // null/undefined (no filtering).
+  function coinAllowed(coin, filter) {
+    if (filter == null) return true;
+    if (typeof filter === "string") return coin === filter;
+    if (filter instanceof Set) return filter.has(coin);
+    if (Array.isArray(filter)) return filter.indexOf(coin) !== -1;
+    return true;
+  }
+
   // Build a Map<priceKey, {sz, cats:Set, sides:Set, price}> from raw orders,
-  // optionally filtered to a single coin.
-  function buildIndex(orders, coin) {
+  // optionally filtered by coin (string, Set, array, or null for all).
+  function buildIndex(orders, coins) {
     var map = new Map();
     if (!Array.isArray(orders)) return map;
     for (var i = 0; i < orders.length; i++) {
       var o = orders[i];
       if (!o) continue;
-      if (coin && o.coin !== coin) continue;
+      if (!coinAllowed(o.coin, coins)) continue;
       var k = priceKey(o.limitPx);
       if (k === null) continue;
       var sz = toNum(o.sz) || 0;

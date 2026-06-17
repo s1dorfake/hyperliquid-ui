@@ -10,7 +10,9 @@
 
   var state = {
     user: null,
-    wsCoin: null,
+    wsCoin: null, // last coin seen (for popup display)
+    marketCoins: new Set(), // all coins for the current market (both outcome sides)
+    lastPath: null, // for detecting market navigation
     enabled: true,
     debug: false,
     barMode: "cumulative",
@@ -27,16 +29,10 @@
     console.log.apply(console, args);
   }
 
-  // --- coin detection -------------------------------------------------------
-  function coinFromUrl() {
-    var m = location.pathname.match(/\/trade\/([^/?#]+)/);
-    return m ? decodeURIComponent(m[1]) : null;
-  }
-  function activeCoin() {
-    return state.wsCoin || coinFromUrl();
-  }
-
   // --- messaging with the injected (MAIN world) script ----------------------
+  // Outcome markets stream activeAssetCtx for BOTH sides (Yes + No), so a single
+  // "active coin" flip-flops. We instead collect the SET of coins for the
+  // current market and filter orders against all of them, resetting on nav.
   window.addEventListener("message", function (e) {
     if (e.source !== window) return;
     var d = e.data;
@@ -45,11 +41,14 @@
       state.user = d.user;
       log("wallet detected", d.user);
       refreshOrders();
-    } else if (d.type === "coin" && d.coin && d.coin !== state.wsCoin) {
+    } else if (d.type === "coin" && d.coin) {
       state.wsCoin = d.coin;
-      log("coin detected", d.coin);
-      rebuildIndex();
-      scheduleApply();
+      if (!state.marketCoins.has(d.coin)) {
+        state.marketCoins.add(d.coin);
+        log("coin added", d.coin);
+        rebuildIndex();
+        scheduleApply();
+      }
     } else if (d.type === "sub") {
       log("subscription seen:", d.subType, "coin:", d.coin);
     }
@@ -113,8 +112,9 @@
   }
 
   function rebuildIndex() {
-    state.index = M.buildIndex(state.orders, activeCoin());
-    log("index size", state.index.size, "coin", activeCoin());
+    var filter = state.marketCoins.size ? state.marketCoins : null;
+    state.index = M.buildIndex(state.orders, filter);
+    log("index size", state.index.size, "coins", state.marketCoins.size);
   }
 
   // --- highlighting ---------------------------------------------------------
@@ -584,7 +584,7 @@
       chrome.storage.local.set({
         status: {
           user: state.user,
-          coin: activeCoin(),
+          coin: state.wsCoin,
           orders: state.index.size,
           highlighted: state.lastCount,
           ts: Date.now(),
@@ -627,15 +627,18 @@
       sayHello();
       startObserver();
       scheduleApply();
-      // Poll: refresh orders, follow coin changes from URL navigation.
+      state.lastPath = location.pathname;
+      // Poll: refresh orders; reset the market's coin set when we navigate to a
+      // different market (so stale coins don't keep matching).
       pollTimer = setInterval(function () {
         if (!isContextValid()) return shutdown();
-        refreshOrders();
-        if (!state.wsCoin) {
-          // No WS coin yet; URL is our source of truth.
-          rebuildIndex();
-          scheduleApply();
+        if (location.pathname !== state.lastPath) {
+          state.lastPath = location.pathname;
+          state.marketCoins.clear();
+          state.wsCoin = null;
+          log("navigated; reset market coins");
         }
+        refreshOrders();
       }, 3000);
     });
   }

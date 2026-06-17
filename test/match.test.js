@@ -78,6 +78,18 @@ test("buildIndex without coin keeps all", function () {
   ];
   assert.strictEqual(M.buildIndex(orders).size, 2);
 });
+test("buildIndex filters by a Set of coins (both outcome sides)", function () {
+  var orders = [
+    { coin: "#3580", limitPx: "0.435", sz: "1", side: "A" },
+    { coin: "#3581", limitPx: "0.565", sz: "1", side: "B" },
+    { coin: "BTC", limitPx: "65000", sz: "1", side: "B" },
+  ];
+  var idx = M.buildIndex(orders, new Set(["#3580", "#3581"]));
+  assert.strictEqual(idx.size, 2);
+  assert.ok(idx.get(M.priceKey("0.435")));
+  assert.ok(idx.get(M.priceKey("0.565")));
+  assert.strictEqual(idx.get(M.priceKey("65000")), undefined);
+});
 test("buildIndex mixes categories at the same price", function () {
   var orders = [
     { coin: "BTC", limitPx: "100", sz: "1", side: "A", orderType: "Limit" },
