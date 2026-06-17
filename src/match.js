@@ -97,6 +97,13 @@
     return parts.join(".");
   }
 
+  // Round to k significant figures, returned as a number (no exponent for the
+  // magnitudes we deal with). e.g. sigFigs(-1.86, 2) -> -1.9, sigFigs(186,2) -> 190.
+  function sigFigs(n, k) {
+    if (typeof n !== "number" || !isFinite(n) || n === 0) return 0;
+    return Number(n.toPrecision(k));
+  }
+
   var api = {
     isNumberText: isNumberText,
     toNum: toNum,
@@ -106,6 +113,7 @@
     primaryCat: primaryCat,
     buildIndex: buildIndex,
     formatSz: formatSz,
+    sigFigs: sigFigs,
   };
 
   root.HLMatch = api;

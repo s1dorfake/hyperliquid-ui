@@ -113,4 +113,14 @@ test("priceKey of rendered row text matches an indexed order", function () {
   assert.strictEqual(idx.get(M.priceKey("2950.6")), undefined, "non-match");
 });
 
+// --- sigFigs ---
+test("sigFigs rounds to N significant figures", function () {
+  assert.strictEqual(M.sigFigs(-1.86, 2), -1.9);
+  assert.strictEqual(M.sigFigs(0.6234, 2), 0.62);
+  assert.strictEqual(M.sigFigs(186, 2), 190);
+  assert.strictEqual(M.sigFigs(3.0, 2), 3);
+  assert.strictEqual(M.sigFigs(0, 2), 0);
+  assert.strictEqual(M.sigFigs(Infinity, 2), 0);
+});
+
 console.log("\n" + passed + " checks passed");

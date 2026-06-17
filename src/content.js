@@ -238,14 +238,41 @@
     return leaves;
   }
 
-  // Append a size badge to a numeric leaf (the Size or Total cell).
-  function addBadge(hostLeaf, cat, value, title) {
+  // Append a small badge with literal text to a leaf cell.
+  function addTextBadge(hostLeaf, cat, text, title) {
     if (!hostLeaf) return;
     var b = document.createElement("span");
     b.className = "hl-badge hl-badge-" + cat;
-    b.textContent = M.formatSz(value);
+    b.textContent = text;
     if (title) b.title = title;
     hostLeaf.appendChild(b);
+  }
+
+  // Append a numeric (size) badge.
+  function addBadge(hostLeaf, cat, value, title) {
+    addTextBadge(hostLeaf, cat, M.formatSz(value), title);
+  }
+
+  // Mid price = (best bid + best ask) / 2, from the two price-color groups that
+  // straddle the spread. Returns null if it can't be determined.
+  function computeMid(rows) {
+    var byColor = {};
+    rows.forEach(function (r) {
+      if (r.price == null || !isFinite(r.price)) return;
+      (byColor[r.colorKey] = byColor[r.colorKey] || []).push(r.price);
+    });
+    var groups = Object.keys(byColor).map(function (ck) {
+      var ps = byColor[ck];
+      return { min: Math.min.apply(null, ps), max: Math.max.apply(null, ps) };
+    });
+    if (groups.length < 2) return null;
+    groups.sort(function (a, b) {
+      return a.min - b.min;
+    });
+    var lower = groups[0];
+    var upper = groups[groups.length - 1];
+    if (lower.max < upper.min) return (lower.max + upper.min) / 2;
+    return null;
   }
 
   // Overlay a colored segment on the tip (right end) of the depth bar. The
@@ -290,6 +317,7 @@
       rows.push({
         row: row,
         bar: bar,
+        priceLeaf: lv[0],
         sizeLeaf: lv[1],
         totalLeaf: lv[2],
         price: M.toNum(lv[0].textContent),
@@ -327,13 +355,23 @@
       return isQuote ? Math.round(v) : v;
     }
 
-    // --- write: per-level size badge on our levels ---
+    // --- write: per-level size badge + distance-from-mid on our levels ---
+    var mid = computeMid(rows);
     var count = 0;
     rows.forEach(function (r) {
       var m = myOf.get(r.row);
       if (!m) return;
       count++;
       addBadge(r.sizeLeaf, m.cat, disp(myUnit(m)), "Your order (" + m.cat + ")");
+      if (mid && r.price != null) {
+        var pct = M.sigFigs(((r.price - mid) / mid) * 100, 2);
+        addTextBadge(
+          r.priceLeaf,
+          m.cat,
+          (pct > 0 ? "+" : "") + pct + "%",
+          "Distance from mid"
+        );
+      }
     });
 
     // group by side (price-cell color)
