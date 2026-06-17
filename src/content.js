@@ -364,10 +364,12 @@
       count++;
       addBadge(r.sizeLeaf, m.cat, disp(myUnit(m)), "Your order (" + m.cat + ")");
       if (mid && r.price != null) {
-        var pct = M.sigFigs(((r.price - mid) / mid) * 100, 2);
+        var diff = r.price - mid;
+        var absVal = M.sigFigs(Math.abs(diff), 2);
+        var pct = M.sigFigs((diff / mid) * 100, 2);
         var d = document.createElement("span");
         d.className = "hl-dist hl-badge-" + m.cat;
-        d.textContent = (pct > 0 ? "+" : "") + pct + "%";
+        d.textContent = "$" + absVal + "(" + (pct > 0 ? "+" : "") + pct + "%)";
         d.title = "Distance from mid";
         // Place in the empty left part of the Size column so it never covers
         // the price (anchored to the right edge of the price cell).
