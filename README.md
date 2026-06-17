@@ -7,7 +7,8 @@ public data, no keys, no signing. Works on perps, spot, and outcome markets.
 ## What it does
 
 At each of your levels: a **size badge** (Size column), a **cumulative partition
-badge** (Total column), and a **colored segment on the depth bar** for your share.
+badge** (Total column), a **distance-from-mid** badge `$gap(%)`, and a **colored
+segment on the depth bar** for your share.
 
 Color by order type: **blue** = limit, **amber** = trigger/TP-SL, **purple** = reduce-only.
 
