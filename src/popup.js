@@ -16,18 +16,37 @@ function render(status) {
 }
 
 var toggle = document.getElementById("enabled");
+var barmode = document.getElementById("barmode");
+var debug = document.getElementById("debug");
 
-chrome.storage.local.get({ enabled: true, status: {} }, function (s) {
-  toggle.checked = s.enabled !== false;
-  render(s.status);
-});
+chrome.storage.local.get(
+  { enabled: true, debug: false, barMode: "cumulative", status: {} },
+  function (s) {
+    toggle.checked = s.enabled !== false;
+    barmode.checked = s.barMode === "level";
+    debug.checked = s.debug === true;
+    render(s.status);
+  }
+);
 
 toggle.addEventListener("change", function () {
   chrome.storage.local.set({ enabled: toggle.checked });
+});
+
+barmode.addEventListener("change", function () {
+  chrome.storage.local.set({
+    barMode: barmode.checked ? "level" : "cumulative",
+  });
+});
+
+debug.addEventListener("change", function () {
+  chrome.storage.local.set({ debug: debug.checked });
 });
 
 chrome.storage.onChanged.addListener(function (changes, area) {
   if (area !== "local") return;
   if (changes.status) render(changes.status.newValue);
   if (changes.enabled) toggle.checked = changes.enabled.newValue !== false;
+  if (changes.barMode) barmode.checked = changes.barMode.newValue === "level";
+  if (changes.debug) debug.checked = changes.debug.newValue === true;
 });

@@ -11,6 +11,9 @@
   var lastUser = null;
   var lastCoin = null;
 
+  // Subscription types that carry the currently-displayed market's coin.
+  var COIN_CHANNELS = ["l2Book", "bbo", "activeAssetCtx", "candle"];
+
   function post(payload) {
     payload.__hlSource = "hl-injected";
     try {
@@ -29,13 +32,23 @@
     var sub = msg && msg.subscription;
     if (!sub) return;
 
+    // Diagnostic: surface every subscription so the content script can log it
+    // in debug mode (helps identify which channel carries the active coin).
+    post({ type: "sub", subType: sub.type, coin: sub.coin });
+
     if (typeof sub.user === "string" && /^0x[0-9a-fA-F]{40}$/.test(sub.user)) {
       if (sub.user !== lastUser) {
         lastUser = sub.user;
         post({ type: "user", user: lastUser });
       }
     }
-    if (sub.type === "l2Book" && typeof sub.coin === "string") {
+    // The active coin shows up on several per-market channels. l2Book is the
+    // orderbook itself; bbo/activeAssetCtx/candle also carry it and cover
+    // markets (e.g. HIP-4 outcome markets) that don't use a plain l2Book sub.
+    if (
+      typeof sub.coin === "string" &&
+      COIN_CHANNELS.indexOf(sub.type) !== -1
+    ) {
       if (sub.coin !== lastCoin) {
         lastCoin = sub.coin;
         post({ type: "coin", coin: lastCoin });
