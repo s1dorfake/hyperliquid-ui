@@ -22,6 +22,7 @@
   };
 
   var pollTimer = null;
+  var heartbeatTimer = null;
 
   function log() {
     if (!state.debug) return;
@@ -71,9 +72,11 @@
 
   function shutdown() {
     if (pollTimer) clearInterval(pollTimer);
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
     if (applyTimer) clearTimeout(applyTimer);
     if (observer) observer.disconnect();
     pollTimer = null;
+    heartbeatTimer = null;
     log("context invalidated — shutting down (reload the page)");
   }
 
@@ -178,8 +181,15 @@
   // list of numeric rows on the page (the book has far more rows than the
   // order tables). Cached until the element detaches from the DOM.
   var cachedRoot = null;
+  function rootIsLive(el) {
+    // Still attached AND still actually contains depth-bar rows. HL can keep a
+    // stale container in the DOM after re-rendering, which would otherwise make
+    // us scan an empty root and silently stop highlighting.
+    if (!el || !document.contains(el)) return false;
+    return !!el.querySelector('div[style*="position: absolute"][style*="%"]');
+  }
   function findOrderbookRoot(scan) {
-    if (cachedRoot && document.contains(cachedRoot)) return cachedRoot;
+    if (cachedRoot && rootIsLive(cachedRoot)) return cachedRoot;
     cachedRoot = null;
 
     if (scan.spreadEl) {
@@ -640,6 +650,12 @@
         }
         refreshOrders();
       }, 3000);
+      // Heartbeat: re-render at a steady cadence even if the MutationObserver
+      // goes quiet or misses a DOM swap, so highlights can't get stuck off.
+      heartbeatTimer = setInterval(function () {
+        if (!isContextValid()) return shutdown();
+        scheduleApply();
+      }, 1000);
     });
   }
 
